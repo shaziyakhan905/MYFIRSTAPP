@@ -11,6 +11,14 @@ const getAllUsers = async (req, res)=>{
        return res.status(404).send({ status: 'fail', result: []});
    }
 }
+const getUsers = async (req, res)=>{
+   try{
+        const allUsers = await Users.find();
+       return res.status(200).send({ status: 'success', result: allUsers });
+   }catch(error){
+       return res.status(404).send({ status: 'fail', result: []});
+   }
+}
 const createUser = async (req, res)=>{
     try{
         let payload = req.body;//json object coming from API
@@ -41,5 +49,6 @@ const deleteUser = async (req,res)=>{
 module.exports = {
     getAllUsers,
     createUser,
-    deleteUser
+    deleteUser,
+    getUsers
 }
