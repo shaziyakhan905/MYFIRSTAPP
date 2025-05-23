@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const citySchema = new mongoose.Schema({
   name: {
     type: String,
-    defult: null
+    default: null
 
   },
   stateId: {
@@ -11,7 +11,10 @@ const citySchema = new mongoose.Schema({
     ref: 'State',
     required: true
   },
-  status: { type: Boolean, default: true },
+  status: {
+    type: Boolean,
+    default: true
+  },
 },
   {
     timestamps: true // ✅ Correct: passed as the second argument, NOT inside the field definitions

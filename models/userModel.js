@@ -17,22 +17,26 @@ const usersSchema = new mongoose.Schema({
   emailId: {
     type: String,
     default: null,
+    unique: true
   },
- countryId: {
-   type: mongoose.Schema.Types.ObjectId,
-    ref: 'Country'
-   },
-  stateId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'State' 
+  countryId: {
+    type: mongoose.Schema.Types.ObjectId, ref: 'Country',
+    required: true
+
   },
-  cityId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'City'
-   },
+  stateId: {
+    type: mongoose.Schema.Types.ObjectId, ref: 'State',
+    required: true
+
+  },
+  cityId: {
+    type: mongoose.Schema.Types.ObjectId, ref: 'City',
+    required: true
+
+  }
 },
 
- {
+  {
     timestamps: true // ✅ Correct: passed as the second argument, NOT inside the field definitions
   }
 );
