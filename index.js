@@ -1,5 +1,6 @@
 const express = require('express'); //it is CommonJs import not ES Module import
 const app = express();
+const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config()
 
@@ -7,6 +8,9 @@ app.use(express.json()); // to parse JSON body
 
 const bodyParser = require('body-parser');
 app.use(bodyParser.json()); // for parsing application/json
+
+// ✅ Allow only localhost:4200
+app.use(cors());
 
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -28,6 +32,7 @@ mongoose.connect(MONGODB_URI,{
     console.error('Error connecting to MongoDB Atlas:', error);
   });
 
+  
 
 const allRoutes = require('./routes');
 app.use('/api/user', allRoutes.userRoutes);
