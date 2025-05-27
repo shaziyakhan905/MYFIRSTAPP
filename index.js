@@ -37,5 +37,5 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 //Api Routes configurations
 app.use('/api/user',authenticate, allRoutes.userRoutes);
 app.use('/api', allRoutes.authRoutes);
-app.use('/api/address',authenticate, allRoutes.addressRouter);
+app.use('/api/address', allRoutes.addressRouter);
 app.use('/api/product',authenticate, allRoutes.productRoutes);

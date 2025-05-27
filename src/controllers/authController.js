@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/userModel');
@@ -57,18 +58,18 @@ const refresh = async (req, res) => {
 };
 
 // create user
-const createUser = async (req, res) => {
+const createUser = async (req, res, next) => {
   try {
     let { firstName, lastName, emailId, password, mobileNo, countryId, stateId, cityId } = req.body;
 
     emailId = emailId.toLowerCase();
 
-    const existingUser = await Users.findOne({ emailId });
+    const existingUser = await User.findOne({ emailId });
     if (existingUser) {
       return res.status(400).send({ status: 'fail', message: 'Email already registered' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await Users.create({
+    const user = await User.create({
       firstName,
       lastName,
       emailId,
