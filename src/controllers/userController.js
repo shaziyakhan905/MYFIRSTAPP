@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
-const ObjectId = mongoose.Types.ObjectId;
-const Users = require('../models/userModel');       // ✅ declared once only
+const Users = require('../models/userModel');      // ✅ declared once only
 
 // DELETE a user
 const deleteUser = async (req, res) => {
@@ -26,34 +25,6 @@ const deleteUser = async (req, res) => {
     return res.status(500).json({ status: 'error', message: error.message });
   }
 };
-
-
-const createUser = async (req, res) => {
-  try {
-    let { firstName, lastName, emailId, mobileNo, countryId, stateId, cityId } = req.body;
-
-    emailId = emailId.toLowerCase();
-
-    const existingUser = await Users.findOne({ emailId });
-    if (existingUser) {
-      return res.status(400).send({ status: 'fail', message: 'Email already registered' });
-    }
-
-    const user = await Users.create({
-      firstName,
-      lastName,
-      emailId,
-      mobileNo,
-      countryId: new mongoose.Types.ObjectId(countryId),
-      stateId: new mongoose.Types.ObjectId(stateId),
-      cityId: new mongoose.Types.ObjectId(cityId)
-    });
-
-    return res.status(201).send({ status: 'success', user });
-  } catch (error) {
-    return res.status(500).send({ status: 'error', message: error.message });
-  }
-}
 
 const getUsersWithAddress = async (req, res) => {
   try {
@@ -87,14 +58,14 @@ const getUsersWithAddress = async (req, res) => {
         }
       },
       { $unwind: { path: '$city', preserveNullAndEmptyArrays: true } },
- {
-  $project:
-   {
+      {
+        $project:
+        {
           firstName: 1,
           lastName: 1,
           emailId: 1,
           mobileNo: 1,
-           country: {
+          country: {
             _id: "$country._id",
             name: "$country.name"
           },
@@ -109,7 +80,7 @@ const getUsersWithAddress = async (req, res) => {
           createdAt: 1,
           updatedAt: 1
         }
-      
+
       }
     ]);
 
@@ -241,7 +212,6 @@ const updateUserById = async (req, res) => {
 module.exports = {
   deleteUser,
   getUsersWithAddress,
-  createUser,
   getUserById,
   updateUserById
 };

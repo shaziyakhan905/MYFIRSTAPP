@@ -1,42 +1,41 @@
-const express = require('express'); //it is CommonJs import not ES Module import
-const app = express();
+require('dotenv').config()
+const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-require('dotenv').config()
-
-app.use(express.json()); // to parse JSON body
-
 const bodyParser = require('body-parser');
-app.use(bodyParser.json()); // for parsing application/json
+const path = require('path');
+const allRoutes = require('./routes');
+const app = express();
+const authenticate = require('./src/middlewares/authMiddleware');
 
-// ✅ Allow only localhost:4200
+//Middlewares
+app.use(express.json()); // to parse JSON body
+app.use(bodyParser.json()); // for parsing application/json
 app.use(cors());
 
+//Environments variables
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// Connect to MongoDB
+// MongoDB Database Connection
 mongoose.connect(MONGODB_URI,{
    useNewUrlParser: true,
   useUnifiedTopology: true,
   
-})
-  .then(() => {
+}).then(() => {
     console.log('Connected to MongoDB Atlas');
-    // Start the server after successful connection
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
-  })
-  .catch((error) => {
+  }).catch((error) => {
     console.error('Error connecting to MongoDB Atlas:', error);
   });
 
   
-
-const allRoutes = require('./routes');
-app.use('/api/user', allRoutes.userRoutes);
-const addressRouter = require('./routes/addressRouter');
-app.use('/api/address', addressRouter);
-
-
+// Serve uploaded images statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+//Api Routes configurations
+app.use('/api/user',authenticate, allRoutes.userRoutes);
+app.use('/api', allRoutes.authRoutes);
+app.use('/api/address',authenticate, allRoutes.addressRouter);
+app.use('/api/product',authenticate, allRoutes.productRoutes);
