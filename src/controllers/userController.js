@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Users = require('../models/userModel');      // ✅ declared once only
 
+
 // DELETE a user
 const deleteUser = async (req, res) => {
   try {
@@ -65,6 +66,7 @@ const getUsersWithAddress = async (req, res) => {
           lastName: 1,
           emailId: 1,
           mobileNo: 1,
+          profileImage: 1,
           country: {
             _id: "$country._id",
             name: "$country.name"
@@ -207,11 +209,130 @@ const updateUserById = async (req, res) => {
   }
 };
 
+// get user profile 
+
+const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ status: 'fail', message: 'Invalid user ID' });
+    }
+
+    const users = await Users.aggregate([
+      {
+        $match: { _id: new mongoose.Types.ObjectId(userId) }
+      },
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'countryId',
+          foreignField: '_id',
+          as: 'country'
+        }
+      },
+      { $unwind: { path: '$country', preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: 'states',
+          localField: 'stateId',
+          foreignField: '_id',
+          as: 'state'
+        }
+      },
+      { $unwind: { path: '$state', preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'cityId',
+          foreignField: '_id',
+          as: 'city'
+        }
+      },
+      { $unwind: { path: '$city', preserveNullAndEmptyArrays: true } },
+
+      {
+        $project: {
+          firstName: 1,
+          lastName: 1,
+          emailId: 1,
+          mobileNo: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          country: {
+            _id: "$country._id",
+            name: "$country.name"
+          },
+          state: {
+            _id: "$state._id",
+            name: "$state.name"
+          },
+          city: {
+            _id: "$city._id",
+            name: "$city.name"
+          }
+        }
+      }
+    ]);
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ status: 'fail', message: 'User not found' });
+    }
+
+    return res.status(200).json({ status: 'success', user: users[0] });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// update profile image
+
+const uploadProfileImage = async (req, res) => {
+  try {
+    console.log(req.file);
+    const targetUserId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+      return res.status(400).json({ status: 'fail', message: 'Invalid user ID' });
+    }
+
+    // ✅ Ensure only the owner can update their image
+    // if (req.user.id !== targetUserId) {
+    //   return res.status(403).json({ status: 'fail', message: 'You are not authorized to update this profile image.' });
+    // }
+
+    if (!req.file) {
+      return res.status(400).json({ status: 'fail', message: 'No file uploaded' });
+    }
+
+    const updatedUser = await Users.findByIdAndUpdate(targetUserId, {
+      profileImage: {
+        data: req.file.buffer,
+        contentType: req.file.mimetype
+      }
+    }, { new: true });
+
+    if (!updatedUser) {
+      return res.status(404).json({ status: 'fail', message: 'User not found' });
+    }
+
+    return res.status(200).json({ status: 'success', message: 'Profile image uploaded successfully' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+};
 
 
 module.exports = {
   deleteUser,
   getUsersWithAddress,
   getUserById,
-  updateUserById
+  updateUserById,
+  getUserProfile,
+  uploadProfileImage
 };

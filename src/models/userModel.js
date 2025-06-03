@@ -23,6 +23,16 @@ const usersSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  profileImage: {
+    data: {
+    type: Buffer,
+    default: null
+  },
+  contentType: {
+    type: String,
+    default: null
+  }
+  },
   countryId: {
     type: mongoose.Schema.Types.ObjectId, ref: 'Country',
     required: true

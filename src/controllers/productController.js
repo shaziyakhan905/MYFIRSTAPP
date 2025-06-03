@@ -3,12 +3,12 @@ const Product = require("../models/productModel")
 const createProduct = async (req, res) => {
   try {
     const productData = { ...req.body };
-    // console.log(req.file)
-    //   if (req.file) {
-    //     productData.imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-    //     console.log(productData.imageUrl)
-    //   }
-
+     if (req.file) {
+      productData.productImage = {
+        data: req.file.buffer,
+        contentType: req.file.mimetype
+      };
+    }
     const product = await Product.create(productData);
     return res.status(201).json({ status: 'success', product });
   } catch (error) {
