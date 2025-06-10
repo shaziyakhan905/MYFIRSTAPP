@@ -24,12 +24,37 @@ const createNotice = async (req, res) => {
 // GET all notices
 const getAllNotices = async (req, res) => {
   try {
-    const notices = await Notice.find().sort({ createdAt: -1 }); // newest first
-    res.status(200).json({ status: 'success', notices });
+    // Parse optional query params with defaults
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+    const skip = (page - 1) * limit;
+    const search = req.query.search? req.query.search.trim() : '';
+
+    // Build optional search filter
+    const filter = search
+      ?     { title: { $regex: new RegExp(search, 'i') } }   
+      : {};
+
+    // Query data & count in parallel
+    const [notices, total] = await Promise.all([
+      Notice.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Notice.countDocuments(filter)
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      totalCounts: notices.length,
+      notices
+    });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(404).json({ status: 'error', message: error.message });
   }
 };
+
+
 
 
 // GET single notice by ID
