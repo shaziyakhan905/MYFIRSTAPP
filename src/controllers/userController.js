@@ -261,7 +261,7 @@ const getUserProfile = async (req, res) => {
           mobileNo: 1,
           createdAt: 1,
           updatedAt: 1,
-          profileImage:1,
+          profileImage: 1,
           country: {
             _id: "$country._id",
             name: "$country.name"
@@ -282,7 +282,16 @@ const getUserProfile = async (req, res) => {
       return res.status(404).json({ status: 'fail', message: 'User not found' });
     }
 
-    return res.status(200).json({ status: 'success', user: users[0] });
+    // Convert buffer to base64
+    const user = users[0];
+    if (user.profileImage && user.profileImage.data) {
+      const base64 = user.profileImage.data.toString("base64");
+      // You can construct a data URL:
+      user.profileImage.dataUrl = `data:${user.profileImage.contentType};base64,${base64}`;
+      delete user.profileImage.data;
+    }
+
+    res.status(200).json({ status: 'success', user });
 
   } catch (error) {
     console.error(error);
@@ -319,10 +328,24 @@ const uploadProfileImage = async (req, res) => {
     if (!(updatedUser)) {
       return res.status(404).json({status:'fail', message:'User not found'})
     }
+
+    // Convert to plain object first
+    const userObject = updatedUser.toObject();
+
+    // Prepare base64 for response
+    if (userObject.profileImage && userObject.profileImage.data) {
+      const base64 = userObject.profileImage.data.toString("base64");
+
+      // You can construct a data URL:
+      userObject.profileImage.dataUrl = `data:${userObject.profileImage.contentType};base64,${base64}`;
+
+      delete userObject.profileImage.data;
+    }
+
     return res.status(200).json({ 
       status:'success',
-      result:updatedUser.profileImage,
       message:'Profile image uploaded successfully',
+      user:userObject
     });
 
   } catch (error) {
@@ -330,15 +353,17 @@ const uploadProfileImage = async (req, res) => {
   }
 };
 
+
+
 //update user profile 
 
 const updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
-       if (req.body.emailId) {
-      return res.status(400).json({ 
-        status: "error", 
-        message: "Email cannot be updated." 
+    if (req.body.emailId) {
+      return res.status(400).json({
+        status: "error",
+        message: "Email cannot be updated."
       });
     }
 
@@ -381,5 +406,5 @@ module.exports = {
   getUserProfile,
   uploadProfileImage,
   updateUserProfile
- 
+
 };
