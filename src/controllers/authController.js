@@ -23,9 +23,12 @@ const loginUser = async (req, res) => {
 
     // Create JWT token
     const token = jwt.sign(
-      { userId: user._id, emailId: user.emailId },
+      { userId: user._id,
+       emailId: user.emailId,
+       roles: user.roles
+       },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: '1d' }
+      { expiresIn: '30m' }
     );
 
     return res.status(200).json({ status: 'success', token });
@@ -60,31 +63,38 @@ const refresh = async (req, res) => {
 // create user
 const createUser = async (req, res, next) => {
   try {
-    let { firstName, lastName, emailId, password, mobileNo, countryId, stateId, cityId } = req.body;
+    let { firstName, lastName, emailId, password, mobileNo, countryId, stateId, cityId, roles } = req.body;
 
     emailId = emailId.toLowerCase();
 
+    // Check if email already exists
     const existingUser = await User.findOne({ emailId });
     if (existingUser) {
       return res.status(400).send({ status: 'fail', message: 'Email already registered' });
     }
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({
+
+    // Create new user
+    const user = await User.create({ 
       firstName,
       lastName,
       emailId,
-      password: hashedPassword, // Use hashed password
+      password: hashedPassword,
       mobileNo,
       countryId: new mongoose.Types.ObjectId(countryId),
       stateId: new mongoose.Types.ObjectId(stateId),
-      cityId: new mongoose.Types.ObjectId(cityId)
+      cityId: new mongoose.Types.ObjectId(cityId),
+      roles // <- this sets the role directly
     });
 
     return res.status(201).send({ status: 'success', user });
   } catch (error) {
     return res.status(500).send({ status: 'error', message: error.message });
   }
-}
+};
+
 module.exports = {
      loginUser,
     createUser,

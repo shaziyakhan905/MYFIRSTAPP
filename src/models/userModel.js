@@ -23,6 +23,10 @@ const usersSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  roles:{
+type:String,
+enum:["admin","staff","maneger"]
+  },
   profileImage: {
     data: {
     type: Buffer,

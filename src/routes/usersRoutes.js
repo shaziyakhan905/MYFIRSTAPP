@@ -10,7 +10,8 @@ router.get('/profile',userController.getUserProfile)
  router.get('/getAllUsers', userController.getUsersWithAddress)
 router.delete('/deleteUser/:id',userController.deleteUser)
 router.put('/updateUserById/:id',userController.updateUserById)
-router.post('/uploadProfile/:id', uploadMiddileware.single('profileImage'), userController.uploadProfileImage);
+router.post('/uploadProfile', uploadMiddileware.single('profileImage'), userController.uploadProfileImage);
+router.put('/updateUserProfile', userController.updateUserProfile);
 
 
 module.exports = router

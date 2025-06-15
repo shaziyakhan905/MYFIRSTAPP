@@ -294,36 +294,82 @@ const getUserProfile = async (req, res) => {
 const uploadProfileImage = async (req, res) => {
   try {
     console.log(req.file);
-    const targetUserId = req.params.id;
+    const targetUserId = req.user.userId;
 
     if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
-      return res.status(400).json({ status: 'fail', message: 'Invalid user ID' });
+      return res.status(400).json({status:'fail', message:'Invalid user ID'})
     }
-
-    // ✅ Ensure only the owner can update their image
-    // if (req.user.id !== targetUserId) {
-    //   return res.status(403).json({ status: 'fail', message: 'You are not authorized to update this profile image.' });
-    // }
 
     if (!req.file) {
-      return res.status(400).json({ status: 'fail', message: 'No file uploaded' });
+      return res.status(400).json({status:'fail', message:'No file uploaded'})
     }
 
-    const updatedUser = await Users.findByIdAndUpdate(targetUserId, {
-      profileImage: {
-        data: req.file.buffer,
-        contentType: req.file.mimetype
-      }
-    }, { new: true });
+    // Store buffer directly in the database
+    const updatedUser = await Users.findByIdAndUpdate(
+      targetUserId,
+      {
+        profileImage: {
+          data: req.file.buffer,
+          contentType: req.file.mimetype,
+        },
+      },
+      { new: true }
+    );
 
-    if (!updatedUser) {
-      return res.status(404).json({ status: 'fail', message: 'User not found' });
+    if (!(updatedUser)) {
+      return res.status(404).json({status:'fail', message:'User not found'})
     }
+    return res.status(200).json({ 
+      status:'success',
+      result:updatedUser.profileImage,
+      message:'Profile image uploaded successfully',
+    });
 
-    return res.status(200).json({ status: 'success', message: 'Profile image uploaded successfully' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ status: 'error', message: error.message });
+    return res.status(500).json({status:'error', message:error.message});
+  }
+};
+
+//update user profile 
+
+const updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+       if (req.body.emailId) {
+      return res.status(400).json({ 
+        status: "error", 
+        message: "Email cannot be updated." 
+      });
+    }
+
+    // Extract fields you want to allow for update
+    // We REMOVE email to prohibit its modification
+    const { emailId, ...updateData } = req.body;
+
+    // If a new profile image is provided, include it
+    if (req.file) {
+      updateData.profileImage = {
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+      };
+    }
+
+    // Perform the update
+    const updatedUser = await Users.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!(updatedUser)) {
+      return res.status(404).json({ status: "fail", message: "User not found" });
+    }
+
+    return res.status(200).json({ status: "success", message: "User updated successfully", updatedUser });
+  } catch (error) {
+    console.error(error);
+    return res.status(404).json({ status: "error", message: error.message });
   }
 };
 
@@ -334,5 +380,7 @@ module.exports = {
   getUserById,
   updateUserById,
   getUserProfile,
-  uploadProfileImage
+  uploadProfileImage,
+  updateUserProfile
+ 
 };
