@@ -261,6 +261,7 @@ const getUserProfile = async (req, res) => {
           mobileNo: 1,
           createdAt: 1,
           updatedAt: 1,
+          profileImage:1,
           country: {
             _id: "$country._id",
             name: "$country.name"
@@ -293,7 +294,6 @@ const getUserProfile = async (req, res) => {
 
 const uploadProfileImage = async (req, res) => {
   try {
-    console.log(req.file);
     const targetUserId = req.user.userId;
 
     if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
@@ -326,7 +326,6 @@ const uploadProfileImage = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
     return res.status(500).json({status:'error', message:error.message});
   }
 };
