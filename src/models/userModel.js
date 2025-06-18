@@ -54,15 +54,22 @@ const usersSchema = new mongoose.Schema({
   },
 
  skills: {
-    type: [String],
-    validate: {
-      validator: function (v) {
-        return Array.isArray(v) && v.length >= 3;
-      },
-      message: 'You must provide at least 3 skills.'
+  type: [
+    {
+      name: { type: String, required: true },
+      experience: { type: Number, required: true },
+      level: { type: String, required: true },
+       _id: false
+    }
+  ],
+  validate: {
+    validator: function (v) {
+      return Array.isArray(v) && v.length >= 3;
     },
-    default: []
+    message: 'You must provide at least 3 skills.'
   },
+  default: []
+}
 },
   {
     timestamps: true // ✅ Correct: passed as the second argument, NOT inside the field definitions

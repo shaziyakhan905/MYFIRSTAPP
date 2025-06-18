@@ -371,15 +371,39 @@ const updateUserProfile = async (req, res) => {
     // We REMOVE email to prohibit its modification
     const { emailId, skills,...updateData } = req.body;
 
+    // Validate skills array of objects
     if (skills) {
-      if (!Array.isArray(skills) || skills.length < 3) {
+      let parsedSkills = skills;
+
+      // If sent as JSON string (from frontend), parse it
+      if (typeof skills === 'string') {
+        parsedSkills = JSON.parse(skills);
+      }
+
+      if (!Array.isArray(parsedSkills) || parsedSkills.length < 3) {
         return res.status(400).json({
           status: "fail",
-          message: "Please provide at least 3 skills."
+          message: "Please provide at least 3 skills with name, experience, and level."
         });
       }
-      updateData.skills = skills;
+
+      // Optional: validate each skill item
+      // for (const skill of parsedSkills) {
+      //   if (
+      //     typeof skill.name !== 'string' ||
+      //     typeof skill.experience !== 'number' ||
+      //     typeof skill.level !== 'string'
+      //   ) {
+      //     return res.status(400).json({
+      //       status: "fail",
+      //       message: "Each skill must contain { name: string, experience: number, level: string }."
+      //     });
+      //   }
+      // }
+
+      updateData.skills = parsedSkills;
     }
+
 
     // If a new profile image is provided, include it
     if (req.file) {
