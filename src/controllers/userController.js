@@ -259,6 +259,7 @@ const getUserProfile = async (req, res) => {
           lastName: 1,
           emailId: 1,
           mobileNo: 1,
+          skills: 1,
           createdAt: 1,
           updatedAt: 1,
           profileImage: 1,
