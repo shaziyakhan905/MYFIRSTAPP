@@ -23,19 +23,19 @@ const usersSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
-  roles:{
-type:String,
-enum:["admin","staff","maneger"]
+  roles: {
+    type: String,
+    enum: ["admin", "staff", "maneger"]
   },
   profileImage: {
     data: {
-    type: Buffer,
-    default: null
-  },
-  contentType: {
-    type: String,
-    default: null
-  }
+      type: Buffer,
+      default: null
+    },
+    contentType: {
+      type: String,
+      default: null
+    }
   },
   countryId: {
     type: mongoose.Schema.Types.ObjectId, ref: 'Country',
@@ -51,9 +51,19 @@ enum:["admin","staff","maneger"]
     type: mongoose.Schema.Types.ObjectId, ref: 'City',
     required: true
 
-  }
-},
+  },
 
+ skills: {
+    type: [String],
+    validate: {
+      validator: function (v) {
+        return Array.isArray(v) && v.length >= 3;
+      },
+      message: 'You must provide at least 3 skills.'
+    },
+    default: []
+  },
+},
   {
     timestamps: true // ✅ Correct: passed as the second argument, NOT inside the field definitions
   }

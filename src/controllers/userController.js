@@ -369,7 +369,17 @@ const updateUserProfile = async (req, res) => {
 
     // Extract fields you want to allow for update
     // We REMOVE email to prohibit its modification
-    const { emailId, ...updateData } = req.body;
+    const { emailId, skills,...updateData } = req.body;
+
+    if (skills) {
+      if (!Array.isArray(skills) || skills.length < 3) {
+        return res.status(400).json({
+          status: "fail",
+          message: "Please provide at least 3 skills."
+        });
+      }
+      updateData.skills = skills;
+    }
 
     // If a new profile image is provided, include it
     if (req.file) {
