@@ -31,21 +31,13 @@ mongoose.connect(MONGODB_URI,{
     console.error('Error connecting to MongoDB Atlas:', error);
   });
 
-  
-// Serve uploaded images statically
-// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-//Api Routes configurations
-app.use('/api/user',authenticate, allRoutes.userRoutes);
+app.use('/api/user',authenticate.authenticateToken , allRoutes.userRoutes);
 app.use('/api', allRoutes.authRoutes);
 app.use('/api/address', allRoutes.addressRouter);
-app.use('/api/product',authenticate, allRoutes.productRoutes);
-app.use('/api/notice',authenticate, allRoutes.noticeRoutes);
-
-// app.use('*', (req, res, next) => {
-//   const err = new Error(`Route ${req.originalUrl} not found`);
-//   err.statusCode = 404;
-//   next(err);
-// });
+app.use('/api/product',authenticate.authenticateToken, allRoutes.productRoutes);
+app.use('/api/notice',authenticate.authenticateToken, allRoutes.noticeRoutes);
+app.use('/api',authenticate.authenticateToken, allRoutes.enquiryRoutes);
+app.use('/api/test', allRoutes.testRouters);
 
 // Global error handler (must be last)
 app.use(errorHandler);

@@ -23,10 +23,10 @@ const usersSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
-  roles: {
-    type: String,
-    enum: ["admin", "staff", "maneger"]
-  },
+   roles: 
+   { type: String,
+     enum: ['admin', 'user'], 
+     default: 'user' },
   profileImage: {
     data: {
       type: Buffer,
@@ -56,18 +56,13 @@ const usersSchema = new mongoose.Schema({
  skills: {
   type: [
     {
-      name: { type: String, required: true },
-      experience: { type: Number, required: true },
-      level: { type: String, required: true },
+      name: { type: String},
+      experience: { type: Number},
+      level: { type: String },
        _id: false
     }
   ],
-  validate: {
-    validator: function (v) {
-      return Array.isArray(v) && v.length >= 3;
-    },
-    message: 'You must provide at least 3 skills.'
-  },
+ 
   default: []
 }
 },

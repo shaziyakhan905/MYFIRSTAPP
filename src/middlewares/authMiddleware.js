@@ -15,6 +15,14 @@ const authenticateToken = (req, res, next) => {
   } catch (error) {
     return res.status(403).json({ status: 'fail', message: 'Invalid or expired token.' });
   }
+}
+  const authorize = (role) => {
+  return (req, res, next) => {
+    if (req.user.roles !== role) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    next();
+  };
 };
 
-module.exports = authenticateToken;
+module.exports = {authenticateToken , authorize };

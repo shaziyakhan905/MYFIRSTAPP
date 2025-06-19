@@ -28,7 +28,7 @@ const loginUser = async (req, res) => {
        roles: user.roles
        },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: '30m' }
+      { expiresIn: '1d' }
     );
 
     return res.status(200).json({ status: 'success', token });
