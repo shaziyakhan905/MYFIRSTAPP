@@ -38,6 +38,7 @@ app.use('/api/product',authenticate.authenticateToken, allRoutes.productRoutes);
 app.use('/api/notice',authenticate.authenticateToken, allRoutes.noticeRoutes);
 app.use('/api',authenticate.authenticateToken, allRoutes.enquiryRoutes);
 app.use('/api/test', allRoutes.testRouters);
+app.use('/api/news', allRoutes.newsRouters);
 
 // Global error handler (must be last)
 app.use(errorHandler);

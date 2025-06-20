@@ -6,6 +6,8 @@ const productRoutes = require('./src/routes/productRoute');
 const noticeRoutes = require('./src/routes/noticeRouter');
 const enquiryRoutes = require('./src/routes/enquiryRouter');
  const testRouters = require('./src/routes/testRoutes');
+ const newsRouters = require('./src/routes/newsRouter');
+
 
 module.exports = {
     userRoutes,
@@ -14,5 +16,6 @@ module.exports = {
     productRoutes,
     noticeRoutes,
     enquiryRoutes,
-     testRouters
+     testRouters,
+     newsRouters
 }
