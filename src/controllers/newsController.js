@@ -36,56 +36,34 @@ const createNews = async (req, res) => {
   }
 };
 // get all news 
-const mongoose = require('mongoose');
+
 const getAllNews = async (req, res) => {
   try {
-    const news = await News.aggregate([
-      {
-        $lookup: {
-          from: 'newscategories', // must match the actual collection name in MongoDB
-          localField: 'categoryId',
-          foreignField: '_id',
-          as: 'category'
-        }
-      },
-      {
-        $unwind: {
-          path: '$category',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $project: {
-          title: 1,
-          author: 1,
-          description: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          category: {
-            _id: '$category._id',
-            name: '$category.name'
-          },
-          image: 1 // include raw buffer to convert later
-        }
-      }
-    ]);
+    const newsList = await News.find()
+      .populate({
+        path: 'categoryId',
+        model: 'newsCategory',
+        select: '_id name'
+      });
 
-    // Convert image buffer to base64
-    const formattedNews = news.map(n => {
+    const formattedNews = newsList.map(news => {
+      const newsObj = news.toObject();
+
+      // Convert buffer to base64
       let imageBase64 = null;
-      if (n.image && n.image.data) {
-        imageBase64 = `data:${n.image.contentType};base64,${n.image.data.toString('base64')}`;
+      if (newsObj.image && newsObj.image.data) {
+        imageBase64 = `data:${newsObj.image.contentType};base64,${newsObj.image.data.toString('base64')}`;
       }
 
       return {
-        _id: n._id,
-        title: n.title,
-        author: n.author,
-        description: n.description,
-        createdAt: n.createdAt,
-        updatedAt: n.updatedAt,
+        _id: newsObj._id,
+        title: newsObj.title,
+        author: newsObj.author,
+        description: newsObj.description,
+        createdAt: newsObj.createdAt,
+        updatedAt: newsObj.updatedAt,
         image: imageBase64,
-        category: n.category || null
+        category: newsObj.categoryId || null // populated object
       };
     });
 
@@ -96,6 +74,8 @@ const getAllNews = async (req, res) => {
   }
 };
 
+
+
 const getNewsById = async (req, res) => {
   try {
     const newsId = req.params.id;
@@ -104,66 +84,31 @@ const getNewsById = async (req, res) => {
       return res.status(400).json({ status: 'fail', message: 'Invalid news ID' });
     }
 
-    const newsResult = await News.aggregate([
-      {
-        $match: {
-          _id: new mongoose.Types.ObjectId(newsId)
-        }
-      },
-      {
-        $lookup: {
-          from: 'newscategories', // ✅ match actual collection name
-          localField: 'categoryId',
-          foreignField: '_id',
-          as: 'category'
-        }
-      },
-      {
-        $unwind: {
-          path: '$category',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $project: {
-          title: 1,
-          author: 1,
-          description: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          category: {
-            _id: '$category._id',
-            name: '$category.name'
-          },
-          image: 1
-        }
-      }
-    ]);
+    const news = await News.findById(newsId)
+      .populate({
+        path: 'categoryId',
+        model: 'newsCategory', // must match model name (not collection)
+        select: '_id name'
+      });
 
-    if (!newsResult || newsResult.length === 0) {
+    if (!news) {
       return res.status(404).json({ status: 'fail', message: 'News not found' });
     }
 
-    const news = newsResult[0];
-
     // Convert image buffer to base64
-    let imageBase64 = null;
-    if (news.image && news.image.data) {
-      imageBase64 = `data:${news.image.contentType};base64,${news.image.data.toString('base64')}`;
+    const newsObj = news.toObject();
+
+    if (newsObj.image && newsObj.image.data) {
+      newsObj.image = `data:${newsObj.image.contentType};base64,${newsObj.image.data.toString('base64')}`;
+    } else {
+      newsObj.image = null;
     }
 
-    const responseData = {
-      _id: news._id,
-      title: news.title,
-      author: news.author,
-      description: news.description,
-      createdAt: news.createdAt,
-      updatedAt: news.updatedAt,
-      image: imageBase64,
-      category: news.category || null
-    };
+    // Rename populated category
+    newsObj.category = newsObj.categoryId;
+    delete newsObj.categoryId;
 
-    res.status(200).json({ status: 'success', data: responseData });
+    res.status(200).json({ status: 'success', data: newsObj });
   } catch (err) {
     console.error(err);
     res.status(500).json({ status: 'error', message: err.message });
