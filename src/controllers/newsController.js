@@ -36,52 +36,140 @@ const createNews = async (req, res) => {
   }
 };
 // get all news 
+const mongoose = require('mongoose');
 const getAllNews = async (req, res) => {
   try {
-    const newsList = await News.find().populate('categoryId');
+    const news = await News.aggregate([
+      {
+        $lookup: {
+          from: 'newscategories', // must match the actual collection name in MongoDB
+          localField: 'categoryId',
+          foreignField: '_id',
+          as: 'category'
+        }
+      },
+      {
+        $unwind: {
+          path: '$category',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          title: 1,
+          author: 1,
+          description: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          category: {
+            _id: '$category._id',
+            name: '$category.name'
+          },
+          image: 1 // include raw buffer to convert later
+        }
+      }
+    ]);
 
-    const newsWithBase64Images = newsList.map(news => {
-      const newsObj = news.toObject(); // Convert Mongoose document to plain JS object
-
-      if (newsObj.image && newsObj.image.data) {
-        newsObj.imageBase64 = `data:${newsObj.image.contentType};base64,${newsObj.image.data.toString('base64')}`;
-      } else {
-        newsObj.imageBase64 = null;
+    // Convert image buffer to base64
+    const formattedNews = news.map(n => {
+      let imageBase64 = null;
+      if (n.image && n.image.data) {
+        imageBase64 = `data:${n.image.contentType};base64,${n.image.data.toString('base64')}`;
       }
 
-      delete newsObj.image; // Optional: remove raw buffer field
-      return newsObj;
+      return {
+        _id: n._id,
+        title: n.title,
+        author: n.author,
+        description: n.description,
+        createdAt: n.createdAt,
+        updatedAt: n.updatedAt,
+        image: imageBase64,
+        category: n.category || null
+      };
     });
 
-    res.status(200).json({ status: 'success', data: newsWithBase64Images });
+    res.status(200).json({ status: 'success', data: formattedNews });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ status: 'error', message: err.message });
   }
 };
 
-
-// Get news by ID
 const getNewsById = async (req, res) => {
   try {
-    const news = await News.findById(req.params.id).populate('categoryId');
-    if (!news) {
+    const newsId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(newsId)) {
+      return res.status(400).json({ status: 'fail', message: 'Invalid news ID' });
+    }
+
+    const newsResult = await News.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(newsId)
+        }
+      },
+      {
+        $lookup: {
+          from: 'newscategories', // ✅ match actual collection name
+          localField: 'categoryId',
+          foreignField: '_id',
+          as: 'category'
+        }
+      },
+      {
+        $unwind: {
+          path: '$category',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          title: 1,
+          author: 1,
+          description: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          category: {
+            _id: '$category._id',
+            name: '$category.name'
+          },
+          image: 1
+        }
+      }
+    ]);
+
+    if (!newsResult || newsResult.length === 0) {
       return res.status(404).json({ status: 'fail', message: 'News not found' });
     }
 
-    const newsObj = news.toObject();
-    if (newsObj.image && newsObj.image.data) {
-      newsObj.imageBase64 = `data:${newsObj.image.contentType};base64,${newsObj.image.data.toString('base64')}`;
-    } else {
-      newsObj.imageBase64 = null;
+    const news = newsResult[0];
+
+    // Convert image buffer to base64
+    let imageBase64 = null;
+    if (news.image && news.image.data) {
+      imageBase64 = `data:${news.image.contentType};base64,${news.image.data.toString('base64')}`;
     }
 
-    delete newsObj.image;
+    const responseData = {
+      _id: news._id,
+      title: news.title,
+      author: news.author,
+      description: news.description,
+      createdAt: news.createdAt,
+      updatedAt: news.updatedAt,
+      image: imageBase64,
+      category: news.category || null
+    };
 
-    res.status(200).json({ status: 'success', data: newsObj });
+    res.status(200).json({ status: 'success', data: responseData });
   } catch (err) {
-    res.status(400).json({ status: 'error', message: err.message });
+    console.error(err);
+    res.status(500).json({ status: 'error', message: err.message });
   }
 };
+
 
 // Update news
 const updateNews = async (req, res) => {
