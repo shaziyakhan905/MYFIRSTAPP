@@ -26,14 +26,15 @@ const newsSchema = new mongoose.Schema({
   description: {
     type: String // HTML content
   },
-  categoryId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Category'
-  }
+ categoryId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'newsCategory'
+}
 }, { timestamps: true });
 
 // Models
 const newsCategory = mongoose.model('newsCategory', newscategorySchema);
+
 const News = mongoose.model('News', newsSchema);
 
 // Export

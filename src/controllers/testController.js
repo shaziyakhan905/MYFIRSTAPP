@@ -79,6 +79,15 @@ const createCategory = async (req, res) => {
     res.status(500).json({ status: 'error', message: error.message });
   }
 }
+// get all categories
+const getAllCategories = async (req, res) => {
+  try {
+    const categories = await Category.find();
+    res.status(200).json({ status: 'success', data: categories });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
 // get all test
 
 const getAllTests = async (req, res) => {
@@ -163,5 +172,6 @@ module.exports = {
     getAlltestWithCategaries,
     createCategory,
     getAllTestWithQuestion,
-    submitTest
+    submitTest,
+    getAllCategories
 }

@@ -18,27 +18,27 @@ const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
 // MongoDB Database Connection
-mongoose.connect(MONGODB_URI,{
-   useNewUrlParser: true,
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
   useUnifiedTopology: true,
-  
-}).then(() => {
-    console.log('Connected to MongoDB Atlas');
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  }).catch((error) => {
-    console.error('Error connecting to MongoDB Atlas:', error);
-  });
 
-app.use('/api/user',authenticate.authenticateToken , allRoutes.userRoutes);
-app.use('/api', allRoutes.authRoutes);
-app.use('/api/address', allRoutes.addressRouter);
-app.use('/api/product',authenticate.authenticateToken, allRoutes.productRoutes);
-app.use('/api/notice',authenticate.authenticateToken, allRoutes.noticeRoutes);
-app.use('/api',authenticate.authenticateToken, allRoutes.enquiryRoutes);
+}).then(() => {
+  console.log('Connected to MongoDB Atlas');
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}).catch((error) => {
+  console.error('Error connecting to MongoDB Atlas:', error);
+});
+
 app.use('/api/test', allRoutes.testRouters);
 app.use('/api/news', allRoutes.newsRouters);
+app.use('/api', allRoutes.authRoutes);
+app.use('/api/address', allRoutes.addressRouter);
+app.use('/api/user', authenticate.authenticateToken, allRoutes.userRoutes);
+app.use('/api/product', authenticate.authenticateToken, allRoutes.productRoutes);
+app.use('/api/notice', authenticate.authenticateToken, allRoutes.noticeRoutes);
+app.use('/api', authenticate.authenticateToken, allRoutes.enquiryRoutes);
 
 // Global error handler (must be last)
 app.use(errorHandler);

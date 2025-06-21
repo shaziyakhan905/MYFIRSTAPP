@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const {newsCategory,News} = require('../models/newsModel');
 
 
@@ -19,7 +20,7 @@ const createNews = async (req, res) => {
       title,
       author,
       description,
-      categoryId
+      categoryId: new mongoose.Types.ObjectId(categoryId) 
     };
 
     if (req.file) {
@@ -35,35 +36,57 @@ const createNews = async (req, res) => {
     res.status(400).json({ status: 'error', message: err.message });
   }
 };
-// get all news 
 
+// Get All News (with populate + image base64)
 const getAllNews = async (req, res) => {
   try {
-    const newsList = await News.find()
-      .populate({
-        path: 'categoryId',
-        model: 'newsCategory',
-        select: '_id name'
-      });
+    const news = await News.aggregate([
+      {
+        $lookup: {
+          from: 'newsCategory', // this must match the actual MongoDB collection name
+          localField: 'categoryId',
+          foreignField: '_id',
+          as: 'category'
+        }
+      },
+      {
+        $unwind: {
+          path: '$category',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          title: 1,
+          author: 1,
+          description: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          image: 1,
+          category: {
+            _id: '$category._id',
+            name: '$category.name'
+          }
+        }
+      }
+    ]);
 
-    const formattedNews = newsList.map(news => {
-      const newsObj = news.toObject();
-
-      // Convert buffer to base64
+    // Convert image buffer to base64
+    const formattedNews = news.map(item => {
       let imageBase64 = null;
-      if (newsObj.image && newsObj.image.data) {
-        imageBase64 = `data:${newsObj.image.contentType};base64,${newsObj.image.data.toString('base64')}`;
+      if (item.image && item.image.data) {
+        imageBase64 = `data:${item.image.contentType};base64,${item.image.data.toString('base64')}`;
       }
 
       return {
-        _id: newsObj._id,
-        title: newsObj.title,
-        author: newsObj.author,
-        description: newsObj.description,
-        createdAt: newsObj.createdAt,
-        updatedAt: newsObj.updatedAt,
+        _id: item._id,
+        title: item.title,
+        author: item.author,
+        description: item.description,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
         image: imageBase64,
-        category: newsObj.categoryId || null // populated object
+        category: item.category || null
       };
     });
 
