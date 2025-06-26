@@ -31,7 +31,9 @@ const loginUser = async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    return res.status(200).json({ status: 'success', token });
+    return res.status(200).json({ 
+      status: 'success',
+      token });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ status: 'error', message: error.message });
@@ -41,24 +43,28 @@ const loginUser = async (req, res) => {
 //refresh toket api
 const refresh = async (req, res) => {
   const { refreshToken } = req.body;
+  console.log('Received Refresh Token:', refreshToken);  // Debug log
 
   try {
-     if (!refreshToken) {
-    return res.status(401).json({ status: 'fail', message: 'Refresh token missing' });
-  }
+    if (!refreshToken) {
+      return res.status(401).json({ status: 'fail', message: 'Refresh token missing' });
+    }
+
     const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_KEY);
 
     const newAccessToken = jwt.sign(
       { userId: decoded.userId },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: '1h'}
+      { expiresIn: '1m' }
     );
 
     res.json({ status: 'success', accessToken: newAccessToken });
   } catch (err) {
+    console.error(err);
     res.status(403).json({ status: 'fail', message: 'Invalid or expired refresh token' });
   }
 };
+
 
 // create user
 const createUser = async (req, res, next) => {

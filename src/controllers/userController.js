@@ -66,7 +66,6 @@ const getUsersWithAddress = async (req, res) => {
           lastName: 1,
           emailId: 1,
           mobileNo: 1,
-          profileImage: 1,
           country: {
             _id: "$country._id",
             name: "$country.name"

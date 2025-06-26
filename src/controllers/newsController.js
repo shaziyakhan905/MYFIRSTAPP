@@ -20,7 +20,7 @@ const createNews = async (req, res) => {
       title,
       author,
       description,
-      categoryId: new mongoose.Types.ObjectId(categoryId) 
+      categoryId
     };
 
     if (req.file) {
@@ -38,65 +38,32 @@ const createNews = async (req, res) => {
 };
 
 // Get All News (with populate + image base64)
+
 const getAllNews = async (req, res) => {
   try {
-    const news = await News.aggregate([
-      {
-        $lookup: {
-          from: 'newsCategory', // this must match the actual MongoDB collection name
-          localField: 'categoryId',
-          foreignField: '_id',
-          as: 'category'
-        }
-      },
-      {
-        $unwind: {
-          path: '$category',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $project: {
-          title: 1,
-          author: 1,
-          description: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          image: 1,
-          category: {
-            _id: '$category._id',
-            name: '$category.name'
-          }
-        }
-      }
-    ]);
-
-    // Convert image buffer to base64
-    const formattedNews = news.map(item => {
-      let imageBase64 = null;
-      if (item.image && item.image.data) {
-        imageBase64 = `data:${item.image.contentType};base64,${item.image.data.toString('base64')}`;
-      }
-
-      return {
-        _id: item._id,
-        title: item.title,
-        author: item.author,
-        description: item.description,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
-        image: imageBase64,
-        category: item.category || null
-      };
+    const newsList = await News.find().populate({
+      path: 'categoryId',
+      select: '_id name'
     });
 
-    res.status(200).json({ status: 'success', data: formattedNews });
+    const formatted = newsList.map(n => {
+      const obj = n.toObject();
+
+      obj.image = obj.image?.data
+        ? `data:${obj.image.contentType};base64,${obj.image.data.toString('base64')}`
+        : null;
+
+      obj.category = obj.categoryId;
+      delete obj.categoryId;
+
+      return obj;
+    });
+
+    res.status(200).json({ status: 'success', data: formatted });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ status: 'error', message: err.message });
   }
 };
-
 
 
 const getNewsById = async (req, res) => {

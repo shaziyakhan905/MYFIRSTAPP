@@ -32,9 +32,10 @@ mongoose.connect(MONGODB_URI, {
 });
 
 app.use('/api/test', allRoutes.testRouters);
+app.use('/api/address', allRoutes.addressRouter);
 app.use('/api/news', allRoutes.newsRouters);
 app.use('/api', allRoutes.authRoutes);
-app.use('/api/address', allRoutes.addressRouter);
+
 app.use('/api/user', authenticate.authenticateToken, allRoutes.userRoutes);
 app.use('/api/product', authenticate.authenticateToken, allRoutes.productRoutes);
 app.use('/api/notice', authenticate.authenticateToken, allRoutes.noticeRoutes);
