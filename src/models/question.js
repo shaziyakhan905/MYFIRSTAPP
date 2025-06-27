@@ -11,7 +11,7 @@ const questionSchema = new mongoose.Schema({
     required: true,
   },
   options: [String], // radio/checkbox
-  correctAnswers: [String]
+  correctAnswers: [Number]
 });
 
 module.exports = mongoose.model('Question', questionSchema);

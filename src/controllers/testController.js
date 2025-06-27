@@ -3,41 +3,115 @@ const Test = require('../models/Test');
 const Question = require('../models/question');
 const Category = require('../models/Category');
 
-
+const xlsx = require('xlsx');
 // Create test and map questions to it
-const createTest =  async (req, res) => {
+const createTest = async (req, res) => {
   try {
     const { title, category, questions } = req.body;
 
     if (!title || !category || !Array.isArray(questions) || questions.length === 0) {
-      return res.status(400).json({ status: 'error', message: 'Invalid input' });
+      return res.status(400).json({ status: 'error', message: 'Invalid input: title, category, and questions are required' });
     }
 
-    // Step 1: Create Test
+    // Step 1: Create the Test
     const test = await Test.create({ title, category });
-    console.log(test)
-    // Step 2: Create Questions with test ID
-    const createdQuestions = await Question.insertMany(
-      questions.map(q => ({
-        ...q,
-        test: test._id,
-        category
-      }))
-    );
+
+    // Step 2: Prepare Questions with test and category reference
+    const formattedQuestions = questions.map(q => ({
+      type: q.type,
+      questionText: q.questionText,
+      options: q.options,
+      correctAnswers: q.correctAnswers,
+      test: test._id,
+      category
+    }));
+
+    // Step 3: Insert Questions
+    const createdQuestions = await Question.insertMany(formattedQuestions);
 
     res.status(201).json({
       status: 'success',
-      message: 'Test and questions created',
+      message: 'Test and questions created successfully',
       data: {
         testId: test._id,
         questionCount: createdQuestions.length
       }
     });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: 'error', message: error.message });
+    console.error('Error creating test:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
-}
+};
+
+const createTestFromExcel = async (req, res) => {
+  try {
+    const { title, category } = req.body;
+
+    if (!title || !category) {
+      return res.status(400).json({ status: 'error', message: 'Title and category are required' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ status: 'error', message: 'Excel file is required' });
+    }
+
+    // Read Excel File
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = xlsx.utils.sheet_to_json(sheet);
+
+    if (!jsonData || jsonData.length === 0) {
+      return res.status(400).json({ status: 'error', message: 'Excel file is empty or invalid' });
+    }
+
+    // Step 1: Create Test
+    const test = await Test.create({ title, category });
+
+    // Step 2: Prepare Questions
+    const questions = jsonData.map(row => {
+      const options = row.options ? row.options.split(',').map(opt => opt.trim()) : [];
+      const correctAnswers = (() => {
+        if (typeof row.correctAnswers === 'string') {
+          return row.correctAnswers.split(',').map(ans => parseInt(ans.trim(), 10));
+        }
+        if (typeof row.correctAnswers === 'number') {
+          return [row.correctAnswers];
+        }
+        if (Array.isArray(row.correctAnswers)) {
+          return row.correctAnswers.map(ans => parseInt(ans, 10));
+        }
+        return [];
+      })();
+
+      return {
+        type: row.type,
+        questionText: row.questionText,
+        options,
+        correctAnswers,
+        test: test._id,
+        category
+      };
+    });
+
+    // Step 3: Insert Questions
+    const createdQuestions = await Question.insertMany(questions);
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Test and questions uploaded successfully',
+      data: {
+        testId: test._id,
+        questionCount: createdQuestions.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error uploading test:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
 //update test 
 const updateTest = async (req, res) => {
   try {
@@ -130,9 +204,10 @@ const getSingleTest = async (req, res) => {
 
 
 // get all test with categaries
-const getAlltestWithCategaries =  async (req, res) => {
+const getAlltestWithCategaries = async (req, res) => {
   try {
-    const tests = await Test.find({ category: req.params.categoryId 
+    const tests = await Test.find({
+      category: req.params.categoryId
     }).populate('category', 'name');;
     res.json({ status: 'success', data: tests });
   } catch (error) {
@@ -167,11 +242,11 @@ const getAllTestWithQuestion = async (req, res) => {
 // create category
 const createCategory = async (req, res) => {
   try {
-     console.log('req.body:', req.body); 
+    console.log('req.body:', req.body);
     const { name } = req.body;
-   const category = await Category.create({
+    const category = await Category.create({
       name
-     });
+    });
     res.status(201).json({ status: 'success', data: category });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
@@ -304,6 +379,10 @@ const submitTest = async (req, res) => {
     const { testId } = req.params;
     const { answers } = req.body;
 
+    if (!Array.isArray(answers) || answers.length === 0) {
+      return res.status(400).json({ status: 'error', message: 'Answers are required' });
+    }
+
     const questions = await Question.find({ test: testId });
 
     let totalScorableQuestions = 0;
@@ -315,7 +394,7 @@ const submitTest = async (req, res) => {
       totalScorableQuestions++;
 
       const userAnswer = answers.find(a => a.questionId == question._id.toString());
-      if (!userAnswer) continue;
+      if (!userAnswer || !Array.isArray(userAnswer.selectedAnswers)) continue;
 
       const correct = compareAnswers(
         question.correctAnswers,
@@ -340,17 +419,24 @@ const submitTest = async (req, res) => {
     });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
-function compareAnswers(correctArr, selectedArr) {
-  if (!Array.isArray(correctArr) || !Array.isArray(selectedArr)) return false;
+function compareAnswers(correctAnswers, selectedAnswers) {
+  if (!Array.isArray(correctAnswers) || !Array.isArray(selectedAnswers)) {
+    return false;
+  }
 
-  const clean = arr =>
-    arr.map(s => s.trim().toLowerCase()).sort().join(',');
+  if (correctAnswers.length !== selectedAnswers.length) {
+    return false;
+  }
 
-  return clean(correctArr) === clean(selectedArr);
+  const sortedCorrect = [...correctAnswers].sort();
+  const sortedSelected = [...selectedAnswers].sort();
+
+  return sortedCorrect.every((val, idx) => val == sortedSelected[idx]);
 }
 
 const getCompletedTestsByUserId = async (req, res) => {
@@ -362,18 +448,19 @@ const getCompletedTestsByUserId = async (req, res) => {
 
 
 module.exports = {
-    createTest,
-     getAllTests,
-    getAlltestWithCategaries,
-    createCategory,
-    getAllTestWithQuestion,
-    submitTest,
-    getAllCategories,
-    getCompletedTestsByUserId,
-    updateTestCategory,
-    getTestCategoryById,
-    deleteTestCategory,
-    updateTest,
-    deleteTest,
-    getSingleTest
+  createTest,
+  getAllTests,
+  getAlltestWithCategaries,
+  createCategory,
+  getAllTestWithQuestion,
+  submitTest,
+  getAllCategories,
+  getCompletedTestsByUserId,
+  updateTestCategory,
+  getTestCategoryById,
+  deleteTestCategory,
+  updateTest,
+  deleteTest,
+  getSingleTest,
+  createTestFromExcel
 }

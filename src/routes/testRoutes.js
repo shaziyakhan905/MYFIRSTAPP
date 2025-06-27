@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
+
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 const testController = require("../controllers/testController")
 const testAttemptController = require("../controllers/TestAttemptController")
 
 router.post('/createTest', testController.createTest);
+router.post('/createTestFromExcel',upload.single('file'), testController.createTestFromExcel);
 router.get('/getSingleTest/:id', testController.getSingleTest);
 router.delete('/deleteTest/:id', testController.deleteTest);
 router.put('/updateTest/:id', testController.updateTest);
