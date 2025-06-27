@@ -7,19 +7,23 @@ const xlsx = require('xlsx');
 // Create test and map questions to it
 const createTest = async (req, res) => {
   try {
-    const { title, category, questions } = req.body;
+    const { title, description, category, questions } = req.body;
 
-    if (!title || !category || !Array.isArray(questions) || questions.length === 0) {
-      return res.status(400).json({ status: 'error', message: 'Invalid input: title, category, and questions are required' });
+    if (!title || !description || !category || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json(
+        { 
+          status: 'error', 
+          message: 'title,description,category, and questions are required' });
     }
 
     // Step 1: Create the Test
-    const test = await Test.create({ title, category });
+    const test = await Test.create({ title, category,description});
 
     // Step 2: Prepare Questions with test and category reference
     const formattedQuestions = questions.map(q => ({
       type: q.type,
       questionText: q.questionText,
+      questionContent: q.questionContent,
       options: q.options,
       correctAnswers: q.correctAnswers,
       test: test._id,
@@ -46,10 +50,10 @@ const createTest = async (req, res) => {
 
 const createTestFromExcel = async (req, res) => {
   try {
-    const { title, category } = req.body;
+    const { title, description, category } = req.body;
 
-    if (!title || !category) {
-      return res.status(400).json({ status: 'error', message: 'Title and category are required' });
+    if (!title || !description || !category) {
+      return res.status(400).json({ status: 'error', message: 'Title, description, and category are required' });
     }
 
     if (!req.file) {
@@ -66,7 +70,7 @@ const createTestFromExcel = async (req, res) => {
     }
 
     // Step 1: Create Test
-    const test = await Test.create({ title, category });
+    const test = await Test.create({ title, category,description });
 
     // Step 2: Prepare Questions
     const questions = jsonData.map(row => {
@@ -87,6 +91,7 @@ const createTestFromExcel = async (req, res) => {
       return {
         type: row.type,
         questionText: row.questionText,
+        questionContent: row.questionContent,
         options,
         correctAnswers,
         test: test._id,
@@ -116,15 +121,15 @@ const createTestFromExcel = async (req, res) => {
 const updateTest = async (req, res) => {
   try {
     const testId = req.params.id;
-    const { title, category, questions } = req.body;
+    const { title,description, category, questions } = req.body;
 
-    if (!title || !category || !Array.isArray(questions) || questions.length === 0) {
+    if (!title || !description || !category || !Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({ status: 'error', message: 'Invalid input' });
     }
 
     const updatedTest = await Test.findByIdAndUpdate(
       testId,
-      { title, category },
+      { title,description,category },
       { new: true }
     );
 
