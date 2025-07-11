@@ -8,6 +8,7 @@ const testAttemptController = require("../controllers/TestAttemptController")
 
 router.post('/createTest', testController.createTest);
 router.post('/createTestFromExcel',upload.single('file'), testController.createTestFromExcel);
+router.post('/evaluateTest/:testId', testController.evaluateTest);
 router.get('/getSingleTest/:id', testController.getSingleTest);
 router.delete('/deleteTest/:id', testController.deleteTest);
 router.put('/updateTest/:id', testController.updateTest);

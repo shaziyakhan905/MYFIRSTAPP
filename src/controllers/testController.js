@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 
 const Test = require('../models/Test');
 const Question = require('../models/question');
@@ -7,19 +8,19 @@ const xlsx = require('xlsx');
 // Create test and map questions to it
 const createTest = async (req, res) => {
   try {
-    const { title, description, category, questions } = req.body;
+    const { title, description, category, level, questions } = req.body;
 
-    if (!title || !description || !category || !Array.isArray(questions) || questions.length === 0) {
-      return res.status(400).json(
-        { 
-          status: 'error', 
-          message: 'title,description,category, and questions are required' });
+    if (!title || !description || !category || !level || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'title, description, category, level, and questions are required' 
+      });
     }
 
-    // Step 1: Create the Test
-    const test = await Test.create({ title, category,description});
+    // Step 1: Create the Test with level
+    const test = await Test.create({ title, description, category, level });
 
-    // Step 2: Prepare Questions with test and category reference
+    // Step 2: Prepare Questions
     const formattedQuestions = questions.map(q => ({
       type: q.type,
       questionText: q.questionText,
@@ -47,6 +48,7 @@ const createTest = async (req, res) => {
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
+
 
 const createTestFromExcel = async (req, res) => {
   try {
@@ -121,15 +123,23 @@ const createTestFromExcel = async (req, res) => {
 const updateTest = async (req, res) => {
   try {
     const testId = req.params.id;
-    const { title,description, category, questions } = req.body;
+    const { title, description, category, level, questions } = req.body;
 
-    if (!title || !description || !category || !Array.isArray(questions) || questions.length === 0) {
-      return res.status(400).json({ status: 'error', message: 'Invalid input' });
+    if (
+      !title || 
+      !description || 
+      !category || 
+      !level || 
+      !Array.isArray(questions) || 
+      questions.length === 0
+    ) {
+      return res.status(400).json({ status: 'error', message: 'Invalid input. title, description, category, level, and questions are required.' });
     }
 
+    // Update the test with level
     const updatedTest = await Test.findByIdAndUpdate(
       testId,
-      { title,description,category },
+      { title, description, category, level },
       { new: true }
     );
 
@@ -137,8 +147,10 @@ const updateTest = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Test not found' });
     }
 
+    // Remove old questions
     await Question.deleteMany({ test: testId });
 
+    // Insert updated questions
     await Question.insertMany(
       questions.map(q => ({
         ...q,
@@ -153,9 +165,11 @@ const updateTest = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    console.error('Error updating test:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
+
 
 //delete test
 const deleteTest = async (req, res) => {
@@ -362,6 +376,7 @@ const getAllTests = async (req, res) => {
       _id: test._id,
       title: test.title,
       category: test.category ? test.category.name : 'N/A', // Use category name or N/A
+      level: test.level,
       questions: questionMap[test._id.toString()] || []
     }));
 
@@ -429,6 +444,82 @@ const submitTest = async (req, res) => {
   }
 };
 
+const evaluateTest = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    const { answers } = req.body;
+
+    if (!Array.isArray(answers) || answers.length === 0) {
+      return res.status(400).json({ status: 'error', message: 'Answers are required' });
+    }
+
+    // Convert string ID to ObjectId
+  const objectTestId = new mongoose.Types.ObjectId(testId); // ✅ Correct
+
+    const questions = await Question.find({ test: objectTestId });
+
+    if (!questions || questions.length === 0) {
+     
+      return res.status(404).json({ status: 'error', message: 'No questions found for this test' });
+    }
+
+    let totalScorableQuestions = 0;
+    let correctCount = 0;
+    const detailedResults = [];
+
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+
+      // Skip evaluation for textarea-type questions
+      if (question.type === 'textarea') continue;
+
+      totalScorableQuestions++;
+
+      // Find user's answer using questionIndex (matching order)
+      const userAnswer = answers.find(a => a.questionIndex === i);
+      const selectedAnswers = userAnswer?.selectedOptions || [];
+
+      const isCorrect = compareAnswers(question.correctAnswers, selectedAnswers);
+
+      if (isCorrect) correctCount++;
+
+      detailedResults.push({
+        questionIndex: i,
+        questionText: question.questionText,
+        questionContent: question.questionContent || null,
+        options: question.options,
+        correctAnswers: question.correctAnswers,
+        userSelectedAnswers: selectedAnswers,
+        isCorrect
+      });
+    }
+
+    const percentage = totalScorableQuestions === 0
+      ? 0
+      : (correctCount / totalScorableQuestions) * 100;
+
+    const resultStatus = percentage >= 80 ? 'pass' : 'fail';
+
+    return res.status(200).json({
+      status: 'success',
+      result: {
+        status: resultStatus,
+        score: Math.round(percentage * 100) / 100,
+        totalQuestions: totalScorableQuestions,
+        correctAnswers: correctCount,
+        message: resultStatus === 'pass'
+          ? 'You passed the test!'
+          : 'You failed the test. Minimum 80% required.',
+        details: detailedResults
+      }
+    });
+
+  } catch (error) {
+    console.error("Evaluation Error:", error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
 function compareAnswers(correctAnswers, selectedAnswers) {
   if (!Array.isArray(correctAnswers) || !Array.isArray(selectedAnswers)) {
     return false;
@@ -444,12 +535,7 @@ function compareAnswers(correctAnswers, selectedAnswers) {
   return sortedCorrect.every((val, idx) => val == sortedSelected[idx]);
 }
 
-const getCompletedTestsByUserId = async (req, res) => {
-  const { userId } = req.params;
-  const submissions = await TestSubmission.find({ user: userId });
-  const completedTestIds = submissions.map(s => s.test.toString());
-  res.json({ data: completedTestIds });
-};
+
 
 
 module.exports = {
@@ -460,12 +546,12 @@ module.exports = {
   getAllTestWithQuestion,
   submitTest,
   getAllCategories,
-  getCompletedTestsByUserId,
   updateTestCategory,
   getTestCategoryById,
   deleteTestCategory,
   updateTest,
   deleteTest,
   getSingleTest,
-  createTestFromExcel
+  createTestFromExcel,
+  evaluateTest
 }

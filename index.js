@@ -11,7 +11,7 @@ const errorHandler = require('./src/middlewares/errorHandler');
 //Middlewares
 app.use(express.json()); // to parse JSON body
 app.use(bodyParser.json()); // for parsing application/json
-app.use(cors());
+app.use(cors({ origin: '*' }));
 
 //Environments variables
 const PORT = process.env.PORT || 3000;
@@ -35,6 +35,7 @@ app.use('/api/test', allRoutes.testRouters);
 app.use('/api/address', allRoutes.addressRouter);
 app.use('/api/news', allRoutes.newsRouters);
 app.use('/api', allRoutes.authRoutes);
+app.use('/api/library', allRoutes.libraryRoutes);
 
 app.use('/api/user', authenticate.authenticateToken, allRoutes.userRoutes);
 app.use('/api/product', authenticate.authenticateToken, allRoutes.productRoutes);
