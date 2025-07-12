@@ -86,11 +86,48 @@ const deleteCourse = async (req, res) => {
     }
 };
 
+const searchCoursesByCategoryTree = async (req, res) => {
+  const { categoryId } = req.params;
+  const { searchText } = req.query;
+
+  try {
+    const allCategories = await LibraryCategory.find();
+
+    // Recursively collect all nested category IDs
+    const collectCategoryIds = (parentId) => {
+      const children = allCategories.filter(cat => String(cat.parentId) === String(parentId));
+      return children.reduce(
+        (acc, child) => [...acc, child._id.toString(), ...collectCategoryIds(child._id)],
+        []
+      );
+    };
+
+    const categoryIds = [categoryId, ...collectCategoryIds(categoryId)];
+
+    // Build the query
+    const query = {
+      categoryId: { $in: categoryIds }
+    };
+
+    if (searchText) {
+      query.title = { $regex: searchText, $options: 'i' }; // case-insensitive title match
+    }
+
+    const courses = await Course.find(query);
+    res.json(courses);
+
+  } catch (error) {
+    console.error('Error searching courses by title and category:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
     createCourse,
     getAllCourses,
     getCoursesByCategory,
     getCourseById,
     updateCourse,
-    deleteCourse
+    deleteCourse,
+    searchCoursesByCategoryTree
 };

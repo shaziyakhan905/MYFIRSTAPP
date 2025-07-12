@@ -7,12 +7,14 @@ const {
     getCoursesByCategory,
     getCourseById,
     updateCourse,
-    deleteCourse
+    deleteCourse,
+    searchCoursesByCategoryTree
 } = require('./courseController');
 
 router.post('/', createCourse);
 router.get('/', getAllCourses);
 router.get('/byCategory/:categoryId', getCoursesByCategory);
+router.get('/searchByCategory/:categoryId', searchCoursesByCategoryTree);
 router.get('/:courseId', getCourseById);
 router.put('/:courseId', updateCourse);
 router.delete('/:courseId', deleteCourse);

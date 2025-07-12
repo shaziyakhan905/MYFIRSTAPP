@@ -41,41 +41,49 @@ const getCategoryChildren = async (req, res) => {
 };
 
 const getCategoryTreeById = async (req, res) => {
-    const { categoryId } = req.params;
+  const { categoryId } = req.params;
 
-    try {
-        const categories = await LibraryCategory.find();
+  try {
+    const categories = await LibraryCategory.find();
 
-        const buildTree = (parentId) => {
-            return categories
-                .filter(cat => String(cat.parentId) === String(parentId))
-                .map(cat => ({
-                    _id: cat._id,
-                    name: cat.name,
-                    navigable: cat.navigable,
-                    description: cat.description,
-                    children: buildTree(cat._id)
-                }));
-        };
+    // Helper to find the parent object by ID
+    const findParent = (parentId) => {
+      return categories.find(c => String(c._id) === String(parentId)) || null;
+    };
 
-        const root = categories.find(cat => String(cat._id) === String(categoryId));
-        if (!root) return res.status(404).json({ error: 'Category not found' });
+    const buildTree = (parentId) => {
+      return categories
+        .filter(cat => String(cat.parentId) === String(parentId))
+        .map(cat => ({
+          _id: cat._id,
+          name: cat.name,
+          navigable: cat.navigable,
+          description: cat.description,
+          parent: findParent(cat.parentId), // ✅ added this line
+          children: buildTree(cat._id)
+        }));
+    };
 
-        const tree = {
-            _id: root._id,
-            name: root.name,
-            navigable: root.navigable,
-            description: root.description,
-            children: buildTree(root._id)
-        };
+    const root = categories.find(cat => String(cat._id) === String(categoryId));
+    if (!root) return res.status(404).json({ error: 'Category not found' });
 
-        res.json(tree);
+    const tree = {
+      _id: root._id,
+      name: root.name,
+      navigable: root.navigable,
+      description: root.description,
+      parent: findParent(root.parentId), // ✅ added this line
+      children: buildTree(root._id)
+    };
 
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server error while building tree' });
-    }
+    res.json(tree);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error while building tree' });
+  }
 };
+
 
 const createCategory = async (req, res) => {
     const { name, parentId, description, navigable } = req.body;
