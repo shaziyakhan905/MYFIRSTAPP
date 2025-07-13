@@ -22,10 +22,11 @@ app.use(cors({
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: false // ✅ Match Angular behavior
 }));
 
 app.options('*', cors());
+
 app.use(express.json()); // to parse JSON body
 app.use(bodyParser.json()); // for parsing application/json
 
