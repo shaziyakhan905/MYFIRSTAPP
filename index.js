@@ -10,22 +10,14 @@ const authenticate = require('./src/middlewares/authMiddleware');
 const errorHandler = require('./src/middlewares/errorHandler');
 //Middlewares
 
-const allowedOrigins = ['https://shaziyakhan905.github.io'];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: '*', // ✅ Allow all origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false // ✅ Match Angular behavior
+  credentials: false
 }));
 
-app.options('*', cors());
+// app.options('*', cors()); // Handle preflight requests
 
 app.use(express.json()); // to parse JSON body
 app.use(bodyParser.json()); // for parsing application/json
